@@ -1,4 +1,3 @@
-
 #      TDFD = 1 = > time - domain modelling - STANDARDOPTION
 #           = 2 = > frequency - domain modelling
 TIME_DOMAIN_OR_FREQ_DOMAIN = 1

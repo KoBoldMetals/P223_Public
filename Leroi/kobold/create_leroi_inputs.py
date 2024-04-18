@@ -3,15 +3,33 @@ import pandas as pd
 from itertools import product
 from typing import List
 from machine_prospector.physics.tdem.response import TDEMResponse
-from SimPEG.electromagnetics.time_domain.receivers import PointMagneticFluxDensity, PointMagneticFluxTimeDerivative
-from leroi_constants import (STANDARD_PROCESSING, TIME_DOMAIN_OR_FREQ_DOMAIN, TEST_MODE,
-                             PRINT_RESPONSE_MODE, MODELING_MODE, RECEIVER_CHANNEL_READ_TIMES,
-                             PLOT_RESPONSE_AT_RECEIVER_LOCATION)
+from SimPEG.electromagnetics.time_domain.receivers import (
+    PointMagneticFluxDensity,
+    PointMagneticFluxTimeDerivative,
+)
+from leroi_constants import (
+    STANDARD_PROCESSING,
+    TIME_DOMAIN_OR_FREQ_DOMAIN,
+    TEST_MODE,
+    PRINT_RESPONSE_MODE,
+    MODELING_MODE,
+    RECEIVER_CHANNEL_READ_TIMES,
+    PLOT_RESPONSE_AT_RECEIVER_LOCATION,
+)
+
 
 class LeroiLithologyLayers:
-    def __init__(self, layer_resistivities: List, layer_conductances: List, layer_relative_magnetic_permeabilities: List,
-                 layer_relative_dielectric_constants: List, layer_chargeabilities: List, layer_time_constants: List,
-                 layer_freq_constants: List, layer_thicknesses_m: List):
+    def __init__(
+        self,
+        layer_resistivities: List,
+        layer_conductances: List,
+        layer_relative_magnetic_permeabilities: List,
+        layer_relative_dielectric_constants: List,
+        layer_chargeabilities: List,
+        layer_time_constants: List,
+        layer_freq_constants: List,
+        layer_thicknesses_m: List,
+    ):
         """
         Default values:  RMU = 1   REPS = 1   CHRG = 0   CTAU = 0   CFREQ = 1
 
@@ -34,34 +52,53 @@ class LeroiLithologyLayers:
         # !      NLAYER - number of layers including plate and basement.
         self.n_layers = len(layer_resistivities)
 
-        self.lithology_properties_df = pd.DataFrame({'layer_index': np.range(self.n_layers),
-                                                     'resistivity': layer_resistivities,
-                                                     'conductance_T': layer_conductances,
-                                                     'relative_magnetic_permeability': layer_relative_magnetic_permeabilities,
-                                                     'relative_dielectric_constant': layer_relative_dielectric_constants,
-                                                     'chargeability': layer_chargeabilities,
-                                                     'time_constant': layer_time_constants,
-                                                     'layer_freq_constant': layer_freq_constants,
-                                                     'layer_thicknesses': layer_thicknesses_m})
+        self.lithology_properties_df = pd.DataFrame(
+            {
+                "layer_index": np.range(self.n_layers),
+                "resistivity": layer_resistivities,
+                "conductance_T": layer_conductances,
+                "relative_magnetic_permeability": layer_relative_magnetic_permeabilities,
+                "relative_dielectric_constant": layer_relative_dielectric_constants,
+                "chargeability": layer_chargeabilities,
+                "time_constant": layer_time_constants,
+                "layer_freq_constant": layer_freq_constants,
+                "layer_thicknesses": layer_thicknesses_m,
+            }
+        )
 
-        self.lithologies = self.lithology_properties_df[['resistivity', 'conductance_T',
-                                               'relative_magnetic_permeability', 'relative_dielectric_constant',
-                                               'chargeability', 'time_constant', 'layer_freq_constant']].values
+        self.lithologies = self.lithology_properties_df[
+            [
+                "resistivity",
+                "conductance_T",
+                "relative_magnetic_permeability",
+                "relative_dielectric_constant",
+                "chargeability",
+                "time_constant",
+                "layer_freq_constant",
+            ]
+        ].values
         # last one is basement lithology
         # example of layers and thicknesses [[3, 25.0], [5, " "]]
-        self.layers_to_use_and_their_thicknesses = [[idx, thickness] for idx, thickness in enumerate(layer_thicknesses_m)]
+        self.layers_to_use_and_their_thicknesses = [
+            [idx, thickness] for idx, thickness in enumerate(layer_thicknesses_m)
+        ]
 
 
 # PlateGeometry takes a center [x, y, z], axes (halfwidth in the x and y directions prior to any rotation), and rotation
 class LeroiSubsurface:
-    """ The fortran code comments describing the lithology layers and the plate are below:
+    """The fortran code comments describing the lithology layers and the plate are below:
     --------------------------------------------------------------------------------------
 
     """
-    def __init__(self, tdemsurvey_object: TDEMResponse, kobold_plates: PlateGeometry,
-                 leroi_lithology: LeroiLithologyLayers,
-                 cell_width_m: float, loop_or_dipole_source: int
-                 ):
+
+    def __init__(
+        self,
+        tdemsurvey_object: TDEMResponse,
+        kobold_plates: PlateGeometry,
+        leroi_lithology: LeroiLithologyLayers,
+        cell_width_m: float,
+        loop_or_dipole_source: int,
+    ):
         """
         :param tdemsurvey_object: TDEMResponse.survey object
         :param kobold_plates: list of PlateGeometry object(s)
@@ -82,12 +119,14 @@ class LeroiSubsurface:
         self.receiver_channel_read_times = RECEIVER_CHANNEL_READ_TIMES
         self.plot_response_at_receiver_location = PLOT_RESPONSE_AT_RECEIVER_LOCATION
 
-
         self.source_type = loop_or_dipole_source
 
         # +++++++++++++++++++++++++++++++++++++++++++
         # plate attributes
-        self.plate_data = [self.kobold_plate_geometry_to_leroi_plate_geometry(kobold_plate) for kobold_plate in enumerate(kobold_plates)]
+        self.plate_data = [
+            self.kobold_plate_geometry_to_leroi_plate_geometry(kobold_plate)
+            for kobold_plate in enumerate(kobold_plates)
+        ]
         # Example plate data below
         #             JP, LITHP,  YCNTRD, XCNTRD,  PLTOP, PLNGTH, PLWDTH, DZM, DIP, PLG
         # plate_data = [[2, 0.00, 0.00, -50.00, 400.0, 200.0, 90.0, 45.0, 0.0]]
@@ -125,7 +164,7 @@ class LeroiSubsurface:
                 # Compute dB/dt
                 self.dB_dt_or_B = 0
             else:
-                raise AttributeError('the receivers must be either dB/dt or B')
+                raise AttributeError("the receivers must be either dB/dt or B")
 
         # n_receiver_channels is referred to as NCHNL - number of receiver channels in Leroi.f90
         self.n_receiver_channels = len(self.survey.time_channels)
@@ -139,8 +178,12 @@ class LeroiSubsurface:
 
         # Transmitter
         loop_coordinates_xyzs = self.survey.loop_coordinates.xyzs
-        self.transmitter_vertices = {1: {'vertices': loop_coordinates_xyzs[:, 0:2],
-                                         'elevation': loop_coordinates_xyzs[:, 2]}}
+        self.transmitter_vertices = {
+            1: {
+                "vertices": loop_coordinates_xyzs[:, 0:2],
+                "elevation": loop_coordinates_xyzs[:, 2],
+            }
+        }
         # transmitter_on_time_and_current_amps
         # TXON(J) = digitised time (in milliseconds)
         # In most cases, TXON(1) = 0, TXON(NSX) = pulse on-time
@@ -153,7 +196,9 @@ class LeroiSubsurface:
         #                                  [1000.000, 1.000],
         #                                  [1000.010, 0.000],
         #                                  [2000.000, 0.000]]
-        self.tx_on_ms_and_transmitter_current_amps = self.survey.waveform.ramp_on  # TODO This isnt right
+        self.tx_on_ms_and_transmitter_current_amps = (
+            self.survey.waveform.ramp_on
+        )  # TODO This isnt right
 
         # !      OFFTIME - time (milliseconds) between end of one pulse and the start of
         # !                the next pulse (of opposite sign) since a bipolar waveform is
@@ -174,11 +219,13 @@ class LeroiSubsurface:
 
         # TODO below is not complete, these attributes need to be read from the TDEMResponse survey
         # TXON (ms) and Transmitter current (amps)
-        self.tx_on_ms_and_transmitter_current_amps = [[0.000, 0.000],
-                                                 [0.100, 1.000],
-                                                 [1000.000, 1.000],
-                                                 [1000.010, 0.000],
-                                                 [2000.000, 0.000]]
+        self.tx_on_ms_and_transmitter_current_amps = [
+            [0.000, 0.000],
+            [0.100, 1.000],
+            [1000.000, 1.000],
+            [1000.010, 0.000],
+            [2000.000, 0.000],
+        ]
         # !      NSX =  number of points needed to describe 1/2 cycle of the transmitter
         # !             waveform.  A bipolar waveform is assumed.  Thus for a system
         # !             like Sirotem or EM37, NSX = 4, one point each for the start
@@ -191,7 +238,9 @@ class LeroiSubsurface:
         #          Receiver Window Specifications (ms - referenced to signal origin)
         #          ----------------------------------------------------------------
 
-        self.receiver_windows = [f'{1000 + i + 0.01}  {i + 1 + 1000.01}' for i in range(50)]
+        self.receiver_windows = [
+            f"{1000 + i + 0.01}  {i + 1 + 1000.01}" for i in range(50)
+        ]
 
         # !      NLINES - number of lines of data to be modelled or inverted.
         # !               For this option, a line of data consists of specifying a
@@ -228,10 +277,22 @@ class LeroiSubsurface:
         # !            NTX = number of transmitters specified
         # !       NVRTX(J) = number of vertices for transmitter J
         # transmitter 1 has four vertices
-        self.transmitter_vertices = {1: {'vertices': [[-500., -500.], [-500., 500.], [500., 500.], [500., -500.]],
-                                    'elevation': 0}}
+        self.transmitter_vertices = {
+            1: {
+                "vertices": [
+                    [-500.0, -500.0],
+                    [-500.0, 500.0],
+                    [500.0, 500.0],
+                    [500.0, -500.0],
+                ],
+                "elevation": 0,
+            }
+        }
         self.number_of_transmitters = len(self.transmitter_vertices)
-        self.transmitter_numbers = [[len(tv['vertices']), tv['elevation']] for tv in self.transmitter_vertices.values()]
+        self.transmitter_numbers = [
+            [len(tv["vertices"]), tv["elevation"]]
+            for tv in self.transmitter_vertices.values()
+        ]
         # !
         # !               SURVEY_TYPE = 1
         # !               ---------------
@@ -294,37 +355,62 @@ class LeroiSubsurface:
         self.az_survey_line = 0
         # !       RXMNT(J) - dipole receiver moment (area * turns) for Line J
         # !                  (magnetic dipole only)
-        self.dipole_receiver_moment = 0.1000E+05
+        self.dipole_receiver_moment = 0.1000e05
         # easting, northing, elevation
 
-        self.receiver_locations = [f'{p[0]} {p[1]} 0.' for p in product(range(-1000, 1100, 100), repeat=2)]
+        self.receiver_locations = [
+            f"{p[0]} {p[1]} 0." for p in product(range(-1000, 1100, 100), repeat=2)
+        ]
 
     def kobold_plate_geometry_to_leroi_plate_geometry(self, kobold_plate):
         return np.na, np.na, np.na, np.na, np.na, np.na
         # TODO
-        #returns center_x, center_y, plate_lith_row, plate_top, plate_length, plate_width
-
+        # returns center_x, center_y, plate_lith_row, plate_top, plate_length, plate_width
 
     def write_to_cfl(self):
-        lines = ['Leroi version of MGF file',
-                 f'{self.time_domain_or_freq_domain} {self.modeling_mode} {self.standard_processing} {self.print_response_mode} {self.test_mode}',
-                 f'{self.dB_dt_or_B} {self.n_points_for_half_cycle} {self.n_receiver_channels} {self.receiver_channel_read_times} {self.receiver_channel_open_close_time_ms} {self.receiver_off_time_ms}',
-                 '\n'.join([' '.join(map(str, thing)) for thing in self.tx_on_ms_and_transmitter_current_amps]),
-                 '\n'.join(self.receiver_windows),
-                 str(self.survey_type),
-                 f'{self.n_lines} {self.n_max_receivers_per_line} {self.number_of_transmitters} {self.source_type} {self.n_max_source_vertices} {self.n_transmitter_turns}',
-                 '\n'.join([' '.join(map(str, thing)) for thing in self.transmitter_numbers]),
-                 '\n'.join([' '.join(map(str, thing)) for thing in self.transmitter_vertices[0]]),
-                 f'{self.line_tx} {self.tx_index} {self.rx_type} {self.n_receivers} {self.units}',
-                 f'{self.component_selection} {self.normalization_indicator} {self.surface_or_bh} {self.plot_response_at_receiver_location}  {self.az_survey_line} {self.dipole_receiver_moment}',
-                 '\n'.join(self.receiver_locations),
-                 f'{self.leroi_lithology.n_layers} {self.n_plate} {self.leroi_lithology.n_layers}',
-                 '\n'.join([' '.join(map(str, thing)) for thing in self.leroi_lithology.lithologies]),
-                 '\n'.join([' '.join(map(str, thing)) for thing in self.leroi_lithology.layers_to_use_and_their_thicknesses]),
-                 str(self.cell_width_m),
-                 '\n'.join([' '.join(map(str, this_plate[:4])) for this_plate in self.plate_data]),
-                 '\n'.join([' '.join(map(str, this_plate[4:9])) for this_plate in self.plate_data]),
-                 ]
+        lines = [
+            "Leroi version of MGF file",
+            f"{self.time_domain_or_freq_domain} {self.modeling_mode} {self.standard_processing} {self.print_response_mode} {self.test_mode}",
+            f"{self.dB_dt_or_B} {self.n_points_for_half_cycle} {self.n_receiver_channels} {self.receiver_channel_read_times} {self.receiver_channel_open_close_time_ms} {self.receiver_off_time_ms}",
+            "\n".join(
+                [
+                    " ".join(map(str, thing))
+                    for thing in self.tx_on_ms_and_transmitter_current_amps
+                ]
+            ),
+            "\n".join(self.receiver_windows),
+            str(self.survey_type),
+            f"{self.n_lines} {self.n_max_receivers_per_line} {self.number_of_transmitters} {self.source_type} {self.n_max_source_vertices} {self.n_transmitter_turns}",
+            "\n".join(
+                [" ".join(map(str, thing)) for thing in self.transmitter_numbers]
+            ),
+            "\n".join(
+                [" ".join(map(str, thing)) for thing in self.transmitter_vertices[0]]
+            ),
+            f"{self.line_tx} {self.tx_index} {self.rx_type} {self.n_receivers} {self.units}",
+            f"{self.component_selection} {self.normalization_indicator} {self.surface_or_bh} {self.plot_response_at_receiver_location}  {self.az_survey_line} {self.dipole_receiver_moment}",
+            "\n".join(self.receiver_locations),
+            f"{self.leroi_lithology.n_layers} {self.n_plate} {self.leroi_lithology.n_layers}",
+            "\n".join(
+                [
+                    " ".join(map(str, thing))
+                    for thing in self.leroi_lithology.lithologies
+                ]
+            ),
+            "\n".join(
+                [
+                    " ".join(map(str, thing))
+                    for thing in self.leroi_lithology.layers_to_use_and_their_thicknesses
+                ]
+            ),
+            str(self.cell_width_m),
+            "\n".join(
+                [" ".join(map(str, this_plate[:4])) for this_plate in self.plate_data]
+            ),
+            "\n".join(
+                [" ".join(map(str, this_plate[4:9])) for this_plate in self.plate_data]
+            ),
+        ]
 
-        with open('filename.txt', 'w') as f:
-            f.write('\n'.join(lines))
+        with open("filename.txt", "w") as f:
+            f.write("\n".join(lines))
