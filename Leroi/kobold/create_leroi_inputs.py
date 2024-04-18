@@ -52,31 +52,17 @@ class LeroiLithologyLayers:
         # !      NLAYER - number of layers including plate and basement.
         self.n_layers = len(layer_resistivities)
 
-        self.lithology_properties_df = pd.DataFrame(
-            {
-                "layer_index": np.range(self.n_layers),
-                "resistivity": layer_resistivities,
-                "conductance_T": layer_conductances,
-                "relative_magnetic_permeability": layer_relative_magnetic_permeabilities,
-                "relative_dielectric_constant": layer_relative_dielectric_constants,
-                "chargeability": layer_chargeabilities,
-                "time_constant": layer_time_constants,
-                "layer_freq_constant": layer_freq_constants,
-                "layer_thicknesses": layer_thicknesses_m,
-            }
-        )
-
-        self.lithologies = self.lithology_properties_df[
+        self.lithologies = np.column_stack(
             [
-                "resistivity",
-                "conductance_T",
-                "relative_magnetic_permeability",
-                "relative_dielectric_constant",
-                "chargeability",
-                "time_constant",
-                "layer_freq_constant",
+                layer_resistivities,
+                layer_conductances,
+                layer_relative_magnetic_permeabilities,
+                layer_relative_dielectric_constants,
+                layer_chargeabilities,
+                layer_time_constants,
+                layer_freq_constants,
             ]
-        ].values
+        )
         # last one is basement lithology
         # example of layers and thicknesses [[3, 25.0], [5, " "]]
         self.layers_to_use_and_their_thicknesses = [
