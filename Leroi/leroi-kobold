@@ -1,0 +1,13 @@
+#!/bin/sh
+# leroi-kobold $1 $2
+# first arg is name of the .cfl file to run, second arg is the directory to run and store the outputs
+# output file names are "Leroi*"
+
+# move to job directory
+test -d "$2" && cd "$2"
+
+# copy file to Leroi.cfl
+test -f "$1" && cp "$1" Leroi.cfl
+
+# run the program ...
+Leroi.x
